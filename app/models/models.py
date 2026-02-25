@@ -31,6 +31,7 @@ class Session(Base):
     courses_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
     
     user: Mapped[List["User"]] = relationship(back_populates="sessions")
+    course: Mapped["Course"] = relationship(back_populates="sessions")
     
 class Course(Base):
     __tablename__= "courses"
@@ -41,4 +42,4 @@ class Course(Base):
     description: Mapped[Optional[str]]
     level: Mapped[str] = mapped_column(Enum("débutant", "intermédiaire", "avancé"))
 
-    sessions: Mapped[List["Session"]] = relationship(back_populates="courses")
+    sessions: Mapped[List["Session"]] = relationship(back_populates="course")
