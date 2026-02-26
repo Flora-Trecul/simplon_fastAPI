@@ -1,6 +1,6 @@
-from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey
+from sqlalchemy import String, Date, DateTime, Integer, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, Optional
 
 
@@ -16,7 +16,7 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(100), unique=True)
     role: Mapped[str] = mapped_column(Enum("administrateur", "formateur", "apprenant"))
-    inscription_date: Mapped[datetime] = mapped_column(DateTime)
+    inscription_date: Mapped[date] = mapped_column(Date)
     
     learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="user")
     
@@ -28,13 +28,18 @@ class LearningSession(Base):
     __tablename__= "sessions"
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    start_date: Mapped[datetime] = mapped_column(DateTime)
-    end_date: Mapped[datetime] = mapped_column(DateTime)
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
     max_capacity: Mapped[int] = mapped_column(Integer)
-    courses_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    deleted_at: Mapped[datetime] = mapped_column(DateTime)
     
     user: Mapped[List["User"]] = relationship(back_populates="learning_sessions")
     course: Mapped["Course"] = relationship(back_populates="learning_sessions")
+
+    __table_args__ = (
+        UniqueConstraint("course_id", "start_date", "end_date", name = "course_dates_uc")
+        )
 
 
 class Course(Base):
