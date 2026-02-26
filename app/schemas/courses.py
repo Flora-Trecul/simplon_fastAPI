@@ -3,7 +3,7 @@ from enum import Enum
 
 class EnumLevel(str, Enum):
     begginer = "débutant"
-    intermediary = "intermédiare"
+    intermediary = "intermédiaire"
     advanced = "avancé" 
 
 class CourseCreate(BaseModel):

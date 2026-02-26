@@ -18,7 +18,9 @@ class User(Base):
     role: Mapped[str] = mapped_column(Enum("administrateur", "formateur", "apprenant"))
     inscription_date: Mapped[datetime] = mapped_column(DateTime)
     
-    learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="user")
+    # learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="user")
+    registrations: Mapped[List["Registration"]] = relationship(back_populates="user")
+
     
     def __repr__(self) -> str:
         return f"User(id={self.id!r},lastname={self.lastname!r},firstname={self.firstname!r})"
@@ -33,9 +35,9 @@ class LearningSession(Base):
     max_capacity: Mapped[int] = mapped_column(Integer)
     courses_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
     
-    user: Mapped[List["User"]] = relationship(back_populates="learning_sessions")
+    # user: Mapped[List["User"]] = relationship(back_populates="learning_sessions")
     course: Mapped["Course"] = relationship(back_populates="learning_sessions")
-
+    registrations : Mapped[List["Registration"]] = relationship(back_populates="learning_sessions")
 
 class Course(Base):
     __tablename__= "courses"
@@ -47,3 +49,12 @@ class Course(Base):
     level: Mapped[str] = mapped_column(Enum("débutant", "intermédiaire", "avancé"))
 
     learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="course")
+    
+class Registration(Base):
+    __tablename__= "registrations"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"), primary_key=True)
+    
+    user: Mapped["User"] = relationship(back_populates="registrations")
+    learning_sessions: Mapped["LearningSession"] = relationship(back_populates="registrations")
