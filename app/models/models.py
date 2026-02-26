@@ -1,11 +1,17 @@
-from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey
+from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey, Table, Column
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
 
-
 class Base(DeclarativeBase):
     pass
+
+inscription= Table(
+    "inscription",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id"), primary_key=True),
+    Column("session_id", ForeignKey("sessions.id"), primary_key=True),
+)
 
 class User(Base):
     __tablename__="users"
@@ -16,8 +22,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(100), unique=True)
     role: Mapped[str] = mapped_column(Enum("administrateur", "formateur", "apprenant"))
     inscription_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    
-    learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="user")
+    learning_sessions: Mapped[List["LearningSession"]] = relationship(secondary=inscription,back_populates="user")
     
     def __repr__(self) -> str:
         return f"User(id={self.id!r},lastname={self.lastname!r},firstname={self.firstname!r})"
@@ -31,8 +36,7 @@ class LearningSession(Base):
     end_date: Mapped[datetime] = mapped_column(DateTime)
     max_capacity: Mapped[int] = mapped_column(Integer)
     courses_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
-    
-    user: Mapped[List["User"]] = relationship(back_populates="learning_sessions")
+    user: Mapped[List["User"]] = relationship(secondary=inscription,back_populates="learning_sessions")
     course: Mapped["Course"] = relationship(back_populates="learning_sessions")
 
 

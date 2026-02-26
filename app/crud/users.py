@@ -25,13 +25,17 @@ def delete_user(db: Session, user_id: int):
         db.commit()
     return user
 
+
 def update_user(db: Session, user_id: int, user_data: UserUpdate):
-    user = db.query(User).filter(User.id == user_id).first()
-    if user:
-        user.first_name = user_data.first_name
-        user.last_name = user_data.last_name
-        user.email = user_data.email
-        user.role = user_data.role
+    update_data = user_data.dict(exclude_unset=True)
+
+    if update_data:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+
+        db.query(User).filter(User.id == user_id).update(update_data)
         db.commit()
         db.refresh(user)
+
     return user
