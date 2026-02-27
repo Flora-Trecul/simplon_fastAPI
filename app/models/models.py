@@ -1,17 +1,10 @@
-from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey, Table, Column
+from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
 
 class Base(DeclarativeBase):
     pass
-
-inscription= Table(
-    "inscription",
-    Base.metadata,
-    Column("user_id", ForeignKey("users.id"), primary_key=True),
-    Column("session_id", ForeignKey("sessions.id"), primary_key=True),
-)
 
 class User(Base):
     __tablename__="users"
@@ -21,12 +14,12 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(100), unique=True)
     role: Mapped[str] = mapped_column(Enum("administrateur", "formateur", "apprenant"))
-    inscription_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    learning_sessions: Mapped[List["LearningSession"]] = relationship(secondary=inscription,back_populates="user")
+    inscription_date: Mapped[datetime] = mapped_column(DateTime)
+    
+    inscriptions: Mapped[List["Inscription"]] = relationship(back_populates="user")
     
     def __repr__(self) -> str:
         return f"User(id={self.id!r},lastname={self.lastname!r},firstname={self.firstname!r})"
-
 
 class LearningSession(Base):
     __tablename__= "sessions"
@@ -35,10 +28,14 @@ class LearningSession(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime)
     end_date: Mapped[datetime] = mapped_column(DateTime)
     max_capacity: Mapped[int] = mapped_column(Integer)
-    courses_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
-    user: Mapped[List["User"]] = relationship(secondary=inscription,back_populates="learning_sessions")
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    
     course: Mapped["Course"] = relationship(back_populates="learning_sessions")
-
+    inscriptions : Mapped[List["Inscription"]] = relationship(back_populates="learning_sessions")
+    
+    __table_args__ = (
+        UniqueConstraint("course_id", "start_date", "end_date", name = "course_dates_uc"),
+        )
 
 class Course(Base):
     __tablename__= "courses"
@@ -50,3 +47,12 @@ class Course(Base):
     level: Mapped[str] = mapped_column(Enum("débutant", "intermédiaire", "avancé"))
 
     learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="course")
+    
+class Inscription(Base):
+    __tablename__= "inscriptions"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"), primary_key=True)
+    
+    user: Mapped["User"] = relationship(back_populates="inscriptions")
+    learning_sessions: Mapped["LearningSession"] = relationship(back_populates="inscriptions")
