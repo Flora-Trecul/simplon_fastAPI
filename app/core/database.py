@@ -1,13 +1,18 @@
 import sys
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker, Session
 from app.models.models import Base
 
 db_url = "sqlite:///app/data/simplon.db"
 
 engine = create_engine(db_url)
-SessionLocal = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# @event.listens_for(Session, "do_orm_execute")
+# def add_deactivated_filter(execute_state):
+#     if (execute_state.is_select and not execute_state.execution_options.get("include_deleted", False)):
+#         execute_state.statement = execute_state.statement.filter_by(is_deleted = False)
+        
 def get_db():
     db = SessionLocal()
     try:

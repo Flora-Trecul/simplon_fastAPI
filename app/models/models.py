@@ -1,4 +1,4 @@
-from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey
+from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
@@ -28,10 +28,14 @@ class LearningSession(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime)
     end_date: Mapped[datetime] = mapped_column(DateTime)
     max_capacity: Mapped[int] = mapped_column(Integer)
-    courses_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
     
     course: Mapped["Course"] = relationship(back_populates="learning_sessions")
     inscriptions : Mapped[List["Inscription"]] = relationship(back_populates="learning_sessions")
+    
+    __table_args__ = (
+        UniqueConstraint("course_id", "start_date", "end_date", name = "course_dates_uc"),
+        )
 
 class Course(Base):
     __tablename__= "courses"

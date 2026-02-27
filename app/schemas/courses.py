@@ -6,18 +6,21 @@ class EnumLevel(str, Enum):
     intermediary = "intermédiaire"
     advanced = "avancé" 
 
-class CourseCreate(BaseModel):
+class Coursebase(BaseModel):
     title: str = Field(..., min_length=2)
     duration: int = Field(..., gt=0)
     description: str | None = Field(None)
     level: EnumLevel
     
-@field_validator('title')
-@classmethod
-def title_not_empty(cls,title):
-   if not title.strip():
-       raise ValueError("Le titre n'est peut pas être vide.")
-   return title.strip()
+    @field_validator('title')
+    @classmethod
+    def title_not_empty(cls,title):
+        if not title.strip():
+            raise ValueError("Le titre n'est peut pas être vide.")
+        return title.strip()
+
+class CourseCreate(Coursebase):
+    pass
 
 class CourseUpdate(BaseModel):
     title: str | None  = Field(None, min_length=2)
@@ -25,11 +28,7 @@ class CourseUpdate(BaseModel):
     description: str | None = Field(None)
     level: EnumLevel | None =  None
     
-class CourseRead(BaseModel):
+class CourseRead(Coursebase):
     id: int
-    title: str
-    duration: int
-    description: str
-    level: EnumLevel
-     
+   
     model_config = ConfigDict(from_attributes=True)
