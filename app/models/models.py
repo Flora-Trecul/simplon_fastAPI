@@ -1,12 +1,10 @@
-from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey
+from sqlalchemy import String, DateTime, Integer, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
 
-
 class Base(DeclarativeBase):
     pass
-
 
 class User(Base):
     __tablename__="users"
@@ -18,11 +16,10 @@ class User(Base):
     role: Mapped[str] = mapped_column(Enum("administrateur", "formateur", "apprenant"))
     inscription_date: Mapped[datetime] = mapped_column(DateTime)
     
-    learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="user")
+    inscriptions: Mapped[List["Inscription"]] = relationship(back_populates="user")
     
     def __repr__(self) -> str:
         return f"User(id={self.id!r},lastname={self.lastname!r},firstname={self.firstname!r})"
-
 
 class LearningSession(Base):
     __tablename__= "sessions"
@@ -31,11 +28,14 @@ class LearningSession(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime)
     end_date: Mapped[datetime] = mapped_column(DateTime)
     max_capacity: Mapped[int] = mapped_column(Integer)
-    courses_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
     
-    user: Mapped[List["User"]] = relationship(back_populates="learning_sessions")
     course: Mapped["Course"] = relationship(back_populates="learning_sessions")
-
+    inscriptions : Mapped[List["Inscription"]] = relationship(back_populates="learning_sessions")
+    
+    __table_args__ = (
+        UniqueConstraint("course_id", "start_date", "end_date", name = "course_dates_uc"),
+        )
 
 class Course(Base):
     __tablename__= "courses"
@@ -47,3 +47,12 @@ class Course(Base):
     level: Mapped[str] = mapped_column(Enum("débutant", "intermédiaire", "avancé"))
 
     learning_sessions: Mapped[List["LearningSession"]] = relationship(back_populates="course")
+    
+class Inscription(Base):
+    __tablename__= "inscriptions"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"), primary_key=True)
+    
+    user: Mapped["User"] = relationship(back_populates="inscriptions")
+    learning_sessions: Mapped["LearningSession"] = relationship(back_populates="inscriptions")
