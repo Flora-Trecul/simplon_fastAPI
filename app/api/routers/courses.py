@@ -14,22 +14,22 @@ def create(data: CourseCreate, db: Session = Depends(get_db)):
 def list_all(db: Session = Depends(get_db)):
     return crud.get_all_courses(db)
 
-@router.get("/{id}", response_model=CourseRead)
-def get_one(id: int, db: Session = Depends(get_db)):
-    course = crud.get_course(db, id)
+@router.get("/{course_id}", response_model=CourseRead)
+def get_one(course_id: int, db: Session = Depends(get_db)):
+    course = crud.get_course(db, course_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course non trouvé")
     return course
 
-@router.patch("/{id}", response_model=CourseRead)
-def update(id: int, data: CourseUpdate, db: Session = Depends(get_db)):
-    course = crud.update_course(db, id, data)
+@router.patch("/{course_id}", response_model=CourseRead)
+def update(course_id: int, data: CourseUpdate, db: Session = Depends(get_db)):
+    course = crud.update_course(db, course_id, data)
     if not course:
         raise HTTPException(status_code=404, detail="Course non trouvé")
     return course
 
-@router.delete("/{id}", status_code=204)
-def delete(id: int, db: Session = Depends(get_db)):
-    course = crud.delete_course(db, id)
+@router.delete("/{course_id}", status_code=204)
+def delete(course_id: int, db: Session = Depends(get_db)):
+    course = crud.delete_course(db, course_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course non trouvé")
