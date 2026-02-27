@@ -23,7 +23,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     return crud_create_user(db=db, user=user)
 
-@router.put("/{user_id}", response_model=UserUpdate)
+@router.patch("/{user_id}", response_model=UserUpdate)
 def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db)):
     user = crud_update_user(db=db, user_id=user_id, user_data=user_data)
     if not user:
