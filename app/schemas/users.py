@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -9,23 +9,23 @@ class RoleEnum(str, Enum):
     apprenant = "apprenant"
 
 class UserBase(BaseModel):
-    first_name: str = Field(..., min_length=2, max_length=100)
-    last_name: str = Field(..., min_length=2, max_length=100)
-    email: EmailStr
+    first_name: str = Field(min_length=2, max_length=50)
+    last_name: str = Field(min_length=2, max_length=50)
+    email: EmailStr = Field(max_length=120)
     role: RoleEnum
     inscription_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
 class UserCreate(UserBase):
     pass
 
-class UserRead(UserBase):
+class UserResponse(UserBase):
     id: int
+    inscription_date: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserUpdate(BaseModel):
-    first_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    last_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    first_name: Optional[str] = Field(None, min_length=2, max_length=50)
+    last_name: Optional[str] = Field(None, min_length=2, max_length=50)
     email: Optional[EmailStr] = None
     role: Optional[RoleEnum] = None
