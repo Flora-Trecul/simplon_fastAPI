@@ -27,7 +27,6 @@ def delete_user(db: Session, user_id: int):
         db.commit()
     return user
 
-
 def update_user(db: Session, user_id: int, user_data: UserUpdate):
     update_data = user_data.dict(exclude_unset=True)
 
@@ -51,6 +50,10 @@ def get_user_with_name(db: Session, user_name: str):
     ).limit(5)
     return db.execute(stmt).scalars().all()
 
+def get_user_role(db: Session, role: str):
+    stmt = select(User).where(User.role.like(f"%{role}%"))
+    return db.execute(stmt).scalars().all()
+
 def get_all_sessions(db: Session, user_id: int):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -72,4 +75,11 @@ def get_learning_session(db: Session, session_id: int):
 
 def get_inscription(db: Session, user_id: int, session_id: int):
     return db.get(Inscription, {"user_id": user_id, "session_id": session_id})
+
+def delete_session(db: Session, user_id: int, session_id: int):
+    inscription = db.get(Inscription, {"user_id": user_id, "session_id": session_id})
+    if inscription:
+        db.delete(inscription)
+        db.commit()
+    return inscription
 

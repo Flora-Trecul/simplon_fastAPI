@@ -18,7 +18,7 @@ class User(Base):
     # deleted_at: Mapped[datetime] = mapped_column(DateTime)
     
     learning_sessions: Mapped[List["LearningSession"]] = relationship(secondary="inscriptions", back_populates="users", viewonly=True)
-    ls_assoc: Mapped[List["Inscription"]] = relationship(back_populates="user")
+    ls_assoc: Mapped[List["Inscription"]] = relationship(back_populates="user",  cascade='all, delete')
     
     def __repr__(self) -> str:
         return f"User(id={self.id!r},lastname={self.lastname!r},firstname={self.firstname!r})"
@@ -34,7 +34,7 @@ class LearningSession(Base):
     # deleted_at: Mapped[datetime] = mapped_column(DateTime)
     
     course: Mapped["Course"] = relationship(back_populates="learning_sessions")
-    user_assoc : Mapped[List["Inscription"]] = relationship(back_populates="learning_session")
+    user_assoc : Mapped[List["Inscription"]] = relationship(back_populates="learning_session",  cascade='all, delete')
     users : Mapped[List["User"]] = relationship(secondary= "inscriptions", back_populates="learning_sessions",viewonly=True)
     
     __table_args__ = (

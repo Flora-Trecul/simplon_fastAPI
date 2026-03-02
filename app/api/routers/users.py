@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from sqlalchemy.orm import Session
 from app.schemas.users import UserResponse, UserCreate, UserUpdate
-from app.crud.users import get_learning_session,get_all_sessions,count_inscriptions,get_inscription,create_inscription,get_all_users,get_user,get_user_with_name, create_user as crud_create_user, update_user as crud_update_user, delete_user as crud_delete_user
+from app.crud.users import get_user_role, delete_session as crud_delete_session,get_learning_session,get_all_sessions,count_inscriptions,get_inscription,create_inscription,get_all_users,get_user,get_user_with_name, create_user as crud_create_user, update_user as crud_update_user, delete_user as crud_delete_user
 from app.core.database import get_db
 from app.models.models import User, LearningSession, Inscription
 from app.schemas.learning_sessions import LSFull
@@ -31,6 +31,13 @@ def read_user(user_name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
     return users
 
+@router.get("/role/{role}", response_model=List[UserResponse])
+def read_user(role: str, db: Session = Depends(get_db)):
+    users = get_user_role(db=db, role=role)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
+    return users
+
 @router.post(
         "/", 
         response_model=UserResponse, 
@@ -54,10 +61,17 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = crud_delete_user(db=db, user_id=user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
-    return {"message": "User deleted"}
+    return {"message": "Utilisateur supprimé"}
+
+@router.delete("/id/{user_id}/session/{session_id}")
+def delete_session(user_id: int, session_id: int, db: Session = Depends(get_db)):
+    session = crud_delete_session(db=db, user_id=user_id, session_id=session_id)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session introuvable")
+    return {"message": "Session supprimé"}
 
 
-@router.post("/id/{user_id}/session/{session_id}", status_code=201)
+@router.post("/id/{user_id}/session/{session_id}", status_code=status.HTTP_201_CREATED)
 def inscription(user_id: int, session_id: int, db: Session = Depends(get_db)):
     user = get_user(db, user_id)
     session = get_learning_session(db, session_id)
