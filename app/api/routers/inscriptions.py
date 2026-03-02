@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.inscriptions import InscriptionCreate, InscriptionRead
-from app.schemas.users import UserRead
+from app.schemas.users import UserResponse
 from app.schemas.learning_sessions import LSShort
 from app.crud import inscriptions as crud
 
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/inscriptions", tags=["Inscriptions"])
 def create(data: InscriptionCreate, db: Session = Depends(get_db)):
     return crud.create_inscription(db, data)
 
-@router.get("/users/{user_id}/sessions", response_model=list[UserRead]) # - after user implementation
+@router.get("/users/{user_id}/sessions", response_model=list[UserResponse]) # - after user implementation
 def list_all_sessions(user_id:int, db: Session = Depends(get_db)):
     return crud.get_all_sessions(db, user_id)
 

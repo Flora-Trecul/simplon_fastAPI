@@ -23,3 +23,6 @@ def add_deactivated_filter(execute_state):
 if __name__ == "__main__":
     if "--create-db" in sys.argv:
         Base.metadata.create_all(engine)
+        
+
+

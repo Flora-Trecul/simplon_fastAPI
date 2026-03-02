@@ -4,8 +4,8 @@ from datetime import date
 
 
 class LSBase(BaseModel):
-	start_date: date
-	end_date: date
+	start_date: datetime
+	end_date: datetime
 	max_capacity: int = Field(ge=1, le=50)
 	course_id: int = Field(ge=0)
 

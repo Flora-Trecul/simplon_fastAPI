@@ -1,7 +1,9 @@
 # crud.py
 from sqlalchemy.orm import Session
-from app.models.models import User, Inscription, LearningSession
+from sqlalchemy import select, or_
+from app.models.models import User, LearningSession, Inscription
 from app.schemas.users import UserCreate, UserUpdate
+from fastapi import HTTPException, status
 from datetime import datetime
 
 
@@ -43,7 +45,7 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate):
     if update_data:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            return None
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="utilisateur introuvable")
 
         db.query(User).filter(User.id == user_id).update(update_data)
         db.commit()
@@ -51,10 +53,23 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate):
 
     return user
 
+def get_user_with_name(db: Session, user_name: str):
+    stmt = select(User).where(
+        or_(
+            User.first_name.like(f"%{user_name}%"),
+            User.last_name.like(f"%{user_name}%")
+        )
+    ).limit(5)
+    return db.execute(stmt).scalars().all()
+
+def get_user_role(db: Session, role: str):
+    stmt = select(User).where(User.role.like(f"%{role}%"))
+    return db.execute(stmt).scalars().all()
+
 def get_all_sessions(db: Session, user_id: int):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        return None
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="utilisateur introuvable")
     return user.learning_sessions
 
 def create_inscription(db: Session, user_id: int, session_id: int):
@@ -72,3 +87,11 @@ def get_learning_session(db: Session, session_id: int):
 
 def get_inscription(db: Session, user_id: int, session_id: int):
     return db.get(Inscription, {"user_id": user_id, "session_id": session_id})
+
+def delete_session(db: Session, user_id: int, session_id: int):
+    inscription = db.get(Inscription, {"user_id": user_id, "session_id": session_id})
+    if inscription:
+        db.delete(inscription)
+        db.commit()
+    return inscription
+
