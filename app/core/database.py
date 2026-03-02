@@ -1,8 +1,6 @@
 import sys
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, Session
 from app.models.models import Base
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
 
 
@@ -21,3 +19,6 @@ def get_db():
 if __name__ == "__main__":
     if "--create-db" in sys.argv:
         Base.metadata.create_all(engine)
+        
+
+

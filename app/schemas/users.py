@@ -29,3 +29,5 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = Field(None, min_length=2, max_length=50)
     email: Optional[EmailStr] = None
     role: Optional[RoleEnum] = None
+    inscription_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
+
