@@ -6,16 +6,20 @@ from app.crud.users import get_user_role, delete_session as crud_delete_session,
 from app.core.database import get_db
 from app.models.models import User, LearningSession, Inscription
 from app.schemas.learning_sessions import LSFull
+from fastapi_pagination.ext.sqlalchemy import paginate
+
 
 router = APIRouter(
     prefix="/users",
     tags=["users"]
 )
 
-@router.get("/all", response_model=List[UserResponse])
+@router.get("/", response_model=List[UserResponse])
 def read_users(db: Session = Depends(get_db)):
     users = get_all_users(db=db)
     return users
+
+
 
 @router.get("/{user_id}", response_model=UserResponse)
 def read_user(user_id: int, db: Session = Depends(get_db)):
@@ -68,11 +72,15 @@ def delete_session(user_id: int, session_id: int, db: Session = Depends(get_db))
     session = crud_delete_session(db=db, user_id=user_id, session_id=session_id)
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session introuvable")
-    return {"message": "Session supprimé"}
+    return {"message": "Inscription supprimée avec succès"}
 
 
-@router.post("/{user_id}/session/{session_id}", status_code=status.HTTP_201_CREATED)
-def inscription(user_id: int, session_id: int, db: Session = Depends(get_db)):
+@router.post("/{user_id}/inscription", status_code=status.HTTP_201_CREATED)
+def inscription(user_id: int, data: dict, db: Session = Depends(get_db)):
+    session_id = data.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="session_id est requis")
+
     user = get_user(db, user_id)
     session = get_learning_session(db, session_id)
     if not user or not session:
@@ -80,12 +88,12 @@ def inscription(user_id: int, session_id: int, db: Session = Depends(get_db)):
 
     exist_inscription = get_inscription(db, user_id, session_id)
     if exist_inscription:
-        raise HTTPException(status_code=400, detail="Utilisateur déjà inscrit")
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Utilisateur déjà inscrit")
+
     if user.role == "apprenant":
         current_count = count_inscriptions(db, session_id)
         if current_count >= session.max_capacity:
-            raise HTTPException(status_code=400, detail="Capacité maximale atteinte pour cette session")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Capacité maximale atteinte pour cette session")
 
     create_inscription(db, user_id, session_id)
     return {"message": "Utilisateur inscrit avec succès"}
