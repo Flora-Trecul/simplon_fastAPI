@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import date
 from enum import Enum
 
 class RoleEnum(str, Enum):
@@ -13,7 +13,7 @@ class UserBase(BaseModel):
     last_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     role: RoleEnum
-    inscription_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    inscription_date: Optional[date] = Field(default_factory=date.today)
 
 class UserCreate(UserBase):
     pass
