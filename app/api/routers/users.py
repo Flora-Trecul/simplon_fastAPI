@@ -6,18 +6,22 @@ from app.crud.users import get_user_role, delete_session as crud_delete_session,
 from app.core.database import get_db
 from app.models.models import User, LearningSession, Inscription
 from app.schemas.learning_sessions import LSFull
+from fastapi_pagination.ext.sqlalchemy import paginate
+
 
 router = APIRouter(
     prefix="/users",
     tags=["users"]
 )
 
-@router.get("/all", response_model=List[UserResponse])
+@router.get("/", response_model=List[UserResponse])
 def read_users(db: Session = Depends(get_db)):
     users = get_all_users(db=db)
     return users
 
-@router.get("/id/{user_id}", response_model=UserResponse)
+
+
+@router.get("/{user_id}", response_model=UserResponse)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     user = get_user(db=db, user_id=user_id)
     if not user:
@@ -49,30 +53,34 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email existe déjà")
     return crud_create_user(db=db, user=user)
 
-@router.patch("/id/{user_id}", response_model=UserResponse)
+@router.patch("/{user_id}", response_model=UserResponse)
 def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db)):
     user = crud_update_user(db=db, user_id=user_id, user_data=user_data)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
     return user
 
-@router.delete("/id/{user_id}")
+@router.delete("/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = crud_delete_user(db=db, user_id=user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
     return {"message": "Utilisateur supprimé"}
 
-@router.delete("/id/{user_id}/session/{session_id}")
+@router.delete("/{user_id}/session/{session_id}")
 def delete_session(user_id: int, session_id: int, db: Session = Depends(get_db)):
     session = crud_delete_session(db=db, user_id=user_id, session_id=session_id)
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session introuvable")
-    return {"message": "Session supprimé"}
+    return {"message": "Inscription supprimée avec succès"}
 
 
-@router.post("/id/{user_id}/session/{session_id}", status_code=status.HTTP_201_CREATED)
-def inscription(user_id: int, session_id: int, db: Session = Depends(get_db)):
+@router.post("/{user_id}/inscription", status_code=status.HTTP_201_CREATED)
+def inscription(user_id: int, data: dict, db: Session = Depends(get_db)):
+    session_id = data.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="session_id est requis")
+
     user = get_user(db, user_id)
     session = get_learning_session(db, session_id)
     if not user or not session:
@@ -80,17 +88,18 @@ def inscription(user_id: int, session_id: int, db: Session = Depends(get_db)):
 
     exist_inscription = get_inscription(db, user_id, session_id)
     if exist_inscription:
-        raise HTTPException(status_code=400, detail="Utilisateur déjà inscrit")
-    
-    current_count = count_inscriptions(db, session_id)
-    if current_count >= session.max_capacity:
-        raise HTTPException(status_code=400, detail="Capacité maximale atteinte pour cette session")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Utilisateur déjà inscrit")
+
+    if user.role == "apprenant":
+        current_count = count_inscriptions(db, session_id)
+        if current_count >= session.max_capacity:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Capacité maximale atteinte pour cette session")
 
     create_inscription(db, user_id, session_id)
     return {"message": "Utilisateur inscrit avec succès"}
 
 
-@router.get("/id/{user_id}/sessions", response_model=List[LSFull])
+@router.get("/{user_id}/sessions", response_model=List[LSFull])
 def get_sessions(user_id: int, db: Session = Depends(get_db)):
     sessions = get_all_sessions(db, user_id)
     return sessions
