@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional
-from datetime import date
+from datetime import datetime
 # from app.models.models import User
 
 
 class LSBase(BaseModel):
-	start_date: date
-	end_date: date
+	start_date: datetime
+	end_date: datetime
 	max_capacity: int = Field(ge=1, le=50)
 	course_id: int = Field(ge=0)
 
@@ -23,8 +23,8 @@ class LSCreate(LSBase):
 
 class LSUpdate(BaseModel):
 	id: Optional[int] = Field(None, ge=0)
-	start_date: Optional[date] = None
-	end_date: Optional[date] = None
+	start_date: Optional[datetime] = None
+	end_date: Optional[datetime] = None
 	max_capacity: Optional[int] = Field(None, ge=1, le=50)
 	courses_id: Optional[int] = Field(None, ge=0)
 
@@ -39,7 +39,7 @@ class LSShort(LSBase):
 class LSFull(LSBase):
 	id: int = Field(ge=0)
 	# users: list[User]
-	course: int = Field(ge=0)
+	#course: int = Field(ge=0)
 
 	class Config:
 		from_attributes = True
