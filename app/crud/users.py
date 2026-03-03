@@ -4,7 +4,7 @@ from sqlalchemy import select, or_
 from app.models.models import User, LearningSession, Inscription
 from app.schemas.users import UserCreate, UserUpdate
 from fastapi import HTTPException, status
-
+from datetime import datetime
 
 
 def get_user(db: Session, user_id: int):
@@ -26,6 +26,18 @@ def delete_user(db: Session, user_id: int):
         db.delete(user)
         db.commit()
     return user
+
+def soft_delete_user(db: Session, user_id: int):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return False
+    if user.learning_sessions:
+        user.deleted_at = datetime.now()
+        db.add(user)
+    else:
+        db.delete(user)
+    db.commit()
+    return True
 
 def update_user(db: Session, user_id: int, user_data: UserUpdate):
     update_data = user_data.dict(exclude_unset=True)
