@@ -1,4 +1,6 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select
+from fastapi_pagination.ext.sqlalchemy import paginate
 from app.schemas.courses import CourseCreate, CourseUpdate
 from app.models.models import Course
 from datetime import datetime
@@ -13,8 +15,8 @@ def create_course(db:Session, course: CourseCreate):
 def get_course(db: Session, courses_id: int):
     return db.query(Course).filter(Course.id == courses_id).first()
 
-def get_all_courses(db: Session, skip: int =0, limit: int =100):
-    return db.query(Course).offset(skip).limit(limit).all()
+def get_all_courses(db: Session):
+    return paginate(db, select(Course))
 
 def get_course_learning_sessions(db: Session, courses_id: int):
     db_course = get_course(db, courses_id)
