@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.learning_sessions import LSResponse, LSCreate, LSUpdate
