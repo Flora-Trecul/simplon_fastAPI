@@ -183,7 +183,7 @@ class TestGetCourse:
         
         response = client.get(f"/courses/777")
         assert response.status_code == 404
-        assert response.json()["detail"] == "Course non trouvé"
+        assert response.json()["detail"] == "Formation non trouvée"
      
 # Tests pour le patch   
 class TestUpdateCourse:
