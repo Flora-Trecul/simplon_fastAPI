@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.learning_sessions import LSResponse, LSCreate, LSUpdate
 from app.schemas.users import UserResponse
-from app.crud.learning_sessions import get_all_ls, get_one_ls, get_one_ls_by_course_dates, create_ls, soft_delete_ls, update_ls, get_ls_users
+from app.crud import learning_sessions as crud
+from app.crud.courses import get_course
 
 
 router = APIRouter(
@@ -13,8 +14,8 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[LSResponse])
-async def read_learning_sessions(db: Session = Depends(get_db)):
-	db_ls = get_all_ls(db = db)
+def get_learning_sessions(db: Session = Depends(get_db)):
+	db_ls = crud.get_all_ls(db = db)
 
 	if not db_ls:
 		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Ressource introuvable")
@@ -23,8 +24,8 @@ async def read_learning_sessions(db: Session = Depends(get_db)):
 
 
 @router.get("/{ls_id}", response_model=LSResponse)
-async def read_learning_session(learning_session_id: int, db: Session = Depends(get_db)):
-	db_ls = get_one_ls(db = db, ls_id = learning_session_id)
+def get_learning_session(learning_session_id: int, db: Session = Depends(get_db)):
+	db_ls = crud.get_one_ls(db = db, ls_id = learning_session_id)
 
 	if not db_ls:
 		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Ressource introuvable")
@@ -33,14 +34,18 @@ async def read_learning_session(learning_session_id: int, db: Session = Depends(
 
 
 @router.patch("/{ls_id}", response_model=LSResponse)
-async def udpate_learning_sessions(learning_session_id: int, schema: LSUpdate, db: Session = Depends(get_db)):
-	db_ls = get_one_ls(db = db, ls_id = learning_session_id)
-
+def udpate_learning_sessions(learning_session_id: int, schema: LSUpdate, db: Session = Depends(get_db)):
+	db_ls = crud.get_one_ls(db = db, ls_id = learning_session_id)
 	if not db_ls:
-		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Ressource introuvable")
-
-	db_ls_updated = update_ls(db = db, ls_id = learning_session_id, schema = schema)
+		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Cette session de formation n'existe pas.")
 	
+	if schema.course_id:
+		db_course = get_course(db = db, courses_id = schema.course_id)
+		if not db_course:
+			raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Cette formation n'existe pas.")
+
+	db_ls_updated = crud.update_ls(db = db, ls_id = learning_session_id, schema = schema)
+
 	if not db_ls_updated:
 		raise HTTPException(status_code = status.HTTP_422_UNPROCESSABLE_CONTENT, detail = "La date de fin doit être supérieure à la date de début.")
 
@@ -48,8 +53,8 @@ async def udpate_learning_sessions(learning_session_id: int, schema: LSUpdate, d
 
 
 @router.post("/", response_model=LSResponse, status_code = status.HTTP_201_CREATED)
-async def create_learning_session(schema: LSCreate, db: Session = Depends(get_db)):
-	existing_ls = get_one_ls_by_course_dates(
+def create_learning_session(schema: LSCreate, db: Session = Depends(get_db)):
+	existing_ls = crud.get_one_ls_by_course_dates(
 		db = db,
 		course_id = schema.course_id,
 		start_date = schema.start_date,
@@ -59,12 +64,17 @@ async def create_learning_session(schema: LSCreate, db: Session = Depends(get_db
 	if existing_ls:
 		raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = "Cette session de formation existe déjà.")
 
-	return create_ls(db = db, schema = schema)
+	db_ls = crud.create_ls(db = db, schema = schema)
+
+	if not db_ls:
+		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Cette formation n'existe pas.")
+	
+	return db_ls
 
 
 @router.delete("/{ls_id}", status_code = status.HTTP_204_NO_CONTENT)
-async def delete_learning_session(learning_session_id: int, db: Session = Depends(get_db)):
-	success = soft_delete_ls(db = db, ls_id = learning_session_id)
+def delete_learning_session(learning_session_id: int, db: Session = Depends(get_db)):
+	success = crud.soft_delete_ls(db = db, ls_id = learning_session_id)
 
 	if not success:
 		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Ressource introuvable")
@@ -73,8 +83,8 @@ async def delete_learning_session(learning_session_id: int, db: Session = Depend
 
 
 @router.get("/{ls_id}/users", response_model = list[UserResponse])
-async def get_learning_session_users(learning_session_id: int, db: Session = Depends(get_db)):
-	db_ls_users = get_ls_users(db = db, ls_id = learning_session_id)
+def get_learning_session_users(learning_session_id: int, db: Session = Depends(get_db)):
+	db_ls_users = crud.get_ls_users(db = db, ls_id = learning_session_id)
 
 	if not db_ls_users:
 		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Pas d'utilisateur trouvé pour cette session de formation.")

@@ -24,7 +24,7 @@ class LSUpdate(BaseModel):
 	start_date: Optional[date] = None
 	end_date: Optional[date] = None
 	max_capacity: Optional[int] = Field(None, ge=1, le=50)
-	courses_id: Optional[int] = Field(None, ge=0)
+	course_id: Optional[int] = Field(None, ge=0)
 
 	@model_validator(mode="after")
 	def validate_dates(self):

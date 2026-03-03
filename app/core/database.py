@@ -19,6 +19,13 @@ def add_deactivated_filter(execute_state):
                 execute_state.statement = execute_state.statement.filter_by(deleted_at = None)
 
 
+@event.listens_for(target=engine, identifier="connect")
+def set_sqlite_pragma(dbapi_connection, _) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 # On crée la database avec la commande 'python -m app.core.database --create-db' dans le terminal depuis la racine
 if __name__ == "__main__":
     if "--create-db" in sys.argv:
