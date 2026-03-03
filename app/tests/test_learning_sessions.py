@@ -1,8 +1,10 @@
 import pytest
 from pydantic import ValidationError
 from app.schemas import learning_sessions as schema
-from datetime import date
+from datetime import date, datetime
 from app.models.models import Course, LearningSession, User, Inscription
+from app.crud import learning_sessions as crud
+from sqlalchemy.orm import Query
 
 
 @pytest.fixture
@@ -21,10 +23,10 @@ def sample_course(db_session):
 @pytest.fixture
 def sample_session_1(db_session, sample_course):
     session = LearningSession(
-        title = "Dev IA 2025-2026", 
         course_id = sample_course.id,
         start_date = date(2025, 11, 17),
-        end_date = date(2026, 6, 30)
+        end_date = date(2026, 6, 30),
+        max_capacity = 13
     )
     db_session.add(session)
     db_session.commit()
@@ -61,8 +63,8 @@ def sample_user(db_session):
 @pytest.fixture
 def sample_inscription(db_session, sample_session_1, sample_user):
     inscription = Inscription(
-        user_id = sample_session_1.id,
-        session_id = sample_user.id
+        user_id = sample_user.id,
+        session_id = sample_session_1.id
     )
     db_session.add(inscription)
     db_session.commit()
@@ -389,7 +391,222 @@ class TestSchemaLSUpdate:
         assert "La date de fin doit être supérieure à la date de début." in str(exc_info.value)
 
 
-"""
+class TestCrudLS:
+
+    # --- Tests get_all_ls (+ including_deleted) ---
+
+    def test_get_all_ls_returns_query(self, db_session, sample_session_1):
+        query = crud.get_all_ls(db=db_session)
+        
+        assert isinstance(query, Query)
+        assert query.count() == 1
+        assert query.first().id == sample_session_1.id
 
 
-"""
+    def test_get_all_ls_returns_empty_query_when_empty_database(self, db_session):
+        query = crud.get_all_ls(db=db_session)
+        
+        assert isinstance(query, Query)
+        assert query.count() == 0
+
+
+    def test_get_all_ls_including_deleted_returns_query(self, db_session, sample_session_1):
+        sample_session_1.deleted_at = datetime.now()
+        db_session.commit()
+
+        query = crud.get_all_ls_including_deleted(db=db_session)
+        
+        assert isinstance(query, Query)
+        assert query.count() == 1
+
+        results = query.all()
+        assert any(s.deleted_at is not None for s in results)
+
+
+    def test_get_all_ls_including_deleted_returns_none_when_empty_database(self, db_session):
+        query = crud.get_all_ls_including_deleted(db=db_session)
+        
+        assert isinstance(query, Query)
+        assert query.count() == 0
+
+
+    # --- Tests get_one_ls (+ by course_dates) ---
+
+    def test_get_one_ls_returns_valid_ls(self, db_session, sample_session_1):
+        learning_session = crud.get_one_ls(db=db_session, ls_id=sample_session_1.id)
+        assert learning_session.id == sample_session_1.id
+
+
+    def test_get_one_ls_not_found_returns_none(self, db_session):
+        learning_session = crud.get_one_ls(db=db_session, ls_id=999)
+        assert learning_session is None
+
+
+    def test_get_one_ls_by_course_dates_returns_valid_ls(self, db_session, sample_session_1):
+        learning_session = crud.get_one_ls_by_course_dates(
+            db = db_session, 
+            course_id = sample_session_1.course_id,
+            start_date = sample_session_1.start_date,
+            end_date = sample_session_1.end_date
+        )
+
+        assert learning_session.id == sample_session_1.id
+
+
+    def test_get_one_ls_by_course_dates_not_found_returns_none(self, db_session):
+        learning_session = crud.get_one_ls_by_course_dates(
+            db = db_session, 
+            course_id = 0,
+            start_date = date(2025, 2, 3),
+            end_date = date(2026, 2, 3)
+        )
+        
+        assert learning_session is None
+
+
+    # --- Tests get_ls_users ---
+
+    def test_get_ls_users_returns_users_registered(self, db_session, sample_session_1, sample_inscription):
+        ls_users = crud.get_ls_users(db=db_session, ls_id=sample_session_1.id)
+
+        assert isinstance(ls_users, list)
+        assert len(ls_users) == 1
+        assert ls_users[0].id == sample_inscription.user_id
+
+
+    def test_get_ls_users_returns_none_if_ls_not_found(self, db_session):
+        ls_users = crud.get_ls_users(db=db_session, ls_id=9999)
+
+        assert ls_users is None
+
+
+    def test_get_ls_users_returns_empty_list_if_no_users_registered(self, db_session, sample_session_1):
+        ls_users = crud.get_ls_users(db=db_session, ls_id=sample_session_1.id)
+
+        assert ls_users == []
+
+
+    # --- Tests create_ls ---
+
+    def test_create_ls_returns_valid_data(self, db_session, sample_course):
+        schema_ls = schema.LSCreate(
+            course_id = sample_course.id,
+            start_date = date.today(),
+            end_date = date(2027, 9, 30),
+            max_capacity = 15
+        )
+
+        new_ls = crud.create_ls(db=db_session, schema=schema_ls)
+
+        assert isinstance(new_ls.id, int)
+        assert new_ls.course_id == sample_course.id
+        assert new_ls.start_date == date.today()
+        assert new_ls.end_date == date(2027, 9, 30)
+        assert new_ls.max_capacity == 15
+
+
+    def test_create_ls_returns_none_if_invalid_course_id(self, db_session):
+        schema_ls = schema.LSCreate(
+            course_id = 299,
+            start_date = date.today(),
+            end_date = date(2027, 9, 30),
+            max_capacity = 15
+        )
+
+        new_ls = crud.create_ls(db=db_session, schema=schema_ls)
+        assert new_ls is None
+
+
+    # --- Tests update_ls ---
+
+
+    def test_update_ls_basic_fields_returns_valid_data(self, db_session, sample_session_1, sample_course):
+        updated_data = schema.LSUpdate(
+            max_capacity = 45,
+            course_id = sample_course.id
+        )
+        updated_ls = crud.update_ls(db=db_session, ls_id=sample_session_1.id, schema=updated_data)
+
+        assert updated_ls.max_capacity == 45
+        assert updated_ls.course_id == sample_course.id
+        assert updated_ls.start_date == sample_session_1.start_date
+
+
+    def test_update_ls_dates_returns_valid_data(self, db_session, sample_session_1):
+        updated_data = schema.LSUpdate(
+            start_date = date(2026, 4, 1),
+            end_date = date(2027, 11, 1)
+        )
+
+        updated_ls = crud.update_ls(db=db_session, ls_id=sample_session_1.id, schema=updated_data)
+
+        assert updated_ls.start_date == date(2026, 4, 1)
+        assert updated_ls.end_date == date(2027, 11, 1)
+        assert updated_ls.max_capacity == sample_session_1.max_capacity
+        assert updated_ls.course_id == sample_session_1.course_id
+
+
+    def test_update_ls_incoherent_start_date_returns_none(self, db_session, sample_session_1):
+        updated_data = schema.LSUpdate(
+            start_date = date(2028, 3, 3)
+        )
+
+        updated_ls = crud.update_ls(db=db_session, ls_id=sample_session_1.id, schema=updated_data)
+
+        assert updated_data.start_date >= sample_session_1.end_date
+        assert updated_ls is None
+
+
+    def test_update_ls_incoherent_end_date_returns_none(self, db_session, sample_session_1):
+        updated_data = schema.LSUpdate(
+            end_date = date(2020, 3, 3)
+        )
+
+        updated_ls = crud.update_ls(db=db_session, ls_id=sample_session_1.id, schema=updated_data)
+
+        assert sample_session_1.start_date >= updated_data.end_date
+        assert updated_ls is None
+
+
+    # --- Tests delete_ls + soft_delete_ls ---
+
+    def test_delete_ls_returns_true(self, db_session, sample_session_1):
+        result = crud.delete_ls(db=db_session, ls_id=sample_session_1.id)
+
+        assert result is True
+        assert db_session.get(LearningSession, sample_session_1.id) is None
+
+
+    def test_delete_ls_not_found_returns_false(self, db_session):
+        result = crud.delete_ls(db=db_session, ls_id=999)
+        assert result is False
+    
+
+    def test_soft_delete_ls_not_found_returns_false(self, db_session):
+        result = crud.soft_delete_ls(db=db_session, ls_id=999)
+        assert result is False
+
+
+    def test_soft_delete_ls_without_users_actually_deletes(self, db_session, sample_session_1):
+        result = crud.soft_delete_ls(db=db_session, ls_id=sample_session_1.id)
+
+        assert result is True
+        assert db_session.get(LearningSession, sample_session_1.id) is None
+
+
+    def test_soft_delete_ls_with_users_updates_timestamp(self, db_session, sample_session_1, sample_inscription):
+        ls_id = sample_session_1.id
+        ls_users = crud.get_ls_users(db=db_session, ls_id=ls_id)
+        assert ls_users[0].id == sample_inscription.user_id
+
+        result = crud.soft_delete_ls(db=db_session, ls_id=ls_id)
+        assert result is True
+
+        assert db_session.get(LearningSession, ls_id) is None
+        
+        all_ls = crud.get_all_ls_including_deleted(db=db_session)
+        updated_ls = all_ls.filter(LearningSession.id == ls_id).first()
+        
+        assert updated_ls is not None
+        assert updated_ls.deleted_at is not None
+        assert isinstance(updated_ls.deleted_at, datetime)

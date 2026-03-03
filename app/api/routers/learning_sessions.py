@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.learning_sessions import LSResponse, LSCreate, LSUpdate
@@ -16,7 +17,7 @@ router = APIRouter(
 
 @router.get("/", response_model=Page[LSResponse])
 def get_learning_sessions(db: Session = Depends(get_db)):
-	db_ls = crud.get_all_ls(db = db)
+	db_ls = paginate(db, crud.get_all_ls(db = db))
 
 	if not db_ls:
 		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Ressource introuvable")
