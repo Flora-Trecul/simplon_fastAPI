@@ -152,7 +152,7 @@ class TestGetCourse:
     def test_get_all_courses_empty(self, client):
         response = client.get("/courses")
         assert response.status_code == 200
-        assert response.json() == []
+        assert response.json()["items"] == []
 
     def test_get_all_courses(self, client):
         payload = {
@@ -164,7 +164,7 @@ class TestGetCourse:
         create_formation = client.post("/courses", json=payload)
         response = client.get("/courses")
         assert response.status_code == 200
-        assert len(response.json()) == 1
+        assert len(response.json()["items"]) == 1
     
     def test_get_course_by_id(self, client):
         payload = {
@@ -191,7 +191,7 @@ class TestCourseSession:
         assert response.status_code == 404
         assert response.json()["detail"] == "Ressource introuvable"
     
-    def test_get_sessions_course_without_sessions(self, client):
+    def test_get_course_without_sessions(self, client):
         payload = {
             "title": "Python",
             "description": "Cours Python",
