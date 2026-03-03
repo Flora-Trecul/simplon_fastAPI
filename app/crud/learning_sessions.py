@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from app.models.models import LearningSession, User, Course
 from app.schemas.learning_sessions import LSCreate, LSUpdate
 from datetime import date, datetime
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 
 def get_one_ls(db: Session, ls_id: int) -> None | LearningSession:
@@ -14,7 +16,7 @@ def get_one_ls(db: Session, ls_id: int) -> None | LearningSession:
 
 
 def get_all_ls(db: Session) -> None | list[LearningSession]:
-	db_ls = db.query(LearningSession).all()
+	db_ls = paginate(db, select(LearningSession))
 
 	if not db_ls:
 		return None
