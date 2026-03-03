@@ -1,9 +1,9 @@
-# crud.py
 from sqlalchemy.orm import Session
 from sqlalchemy import select, or_
 from app.models.models import User, LearningSession, Inscription
 from app.schemas.users import UserCreate, UserUpdate
 from fastapi import HTTPException, status
+from fastapi_pagination.ext.sqlalchemy import paginate
 from datetime import datetime
 
 
@@ -24,6 +24,9 @@ def get_all_users(db: Session, name: str | None = None, role: str | None = None)
         query = query.filter(User.role.ilike(f"%{role}%"))
 
     return query.all()
+  
+def get_all_users_pagination(db: Session):
+    return paginate(db, select(User))
 
 def create_user(db: Session, user: UserCreate):
     db_user = User(**user.model_dump())
@@ -68,6 +71,8 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate):
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
+def get_user_role(db: Session, role: str):
+    return paginate(db, select(User).where(User.role.like(f"%{role}%")))
 
 def get_all_sessions(db: Session, user_id: int):
     user = db.query(User).filter(User.id == user_id).first()

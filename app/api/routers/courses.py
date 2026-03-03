@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi_pagination import Page
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.courses import CourseCreate, CourseRead, CourseUpdate
@@ -11,7 +12,7 @@ router = APIRouter(prefix="/courses", tags=["Courses"])
 def create(data: CourseCreate, db: Session = Depends(get_db)):
     return crud.create_course(db, data)
 
-@router.get("/", response_model=list[CourseRead])
+@router.get("/", response_model=Page[CourseRead])
 def list_all(db: Session = Depends(get_db)):
     return crud.get_all_courses(db)
 

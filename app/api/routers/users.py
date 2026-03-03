@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_pagination import Page
 from typing import List
 from sqlalchemy.orm import Session
 from app.schemas.learning_sessions import LSResponse
@@ -26,6 +27,20 @@ def read_user_by_id(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
     return user
+
+@router.get("/name/{user_name}", response_model=List[UserResponse])
+def read_user(user_name: str, db: Session = Depends(get_db)):
+    users = get_user_with_name(db=db, user_name=user_name)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
+    return users
+
+@router.get("/role/{role}", response_model=Page[UserResponse])
+def read_user(role: str, db: Session = Depends(get_db)):
+    users = get_user_role(db=db, role=role)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
+    return users
 
 @router.post(
         "/", 
