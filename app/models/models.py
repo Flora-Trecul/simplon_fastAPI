@@ -61,8 +61,8 @@ class Course(Base):
 class Inscription(Base):
     __tablename__= "inscriptions"
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), primary_key=True)
     
     user: Mapped["User"] = relationship(back_populates="ls_assoc")
     learning_session: Mapped["LearningSession"] = relationship(back_populates="user_assoc")
