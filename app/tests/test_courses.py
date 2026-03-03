@@ -181,3 +181,104 @@ class TestGetCourse:
     
     def test_get_course_not_found(self, client):
         
+        response = client.get(f"/courses/777")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Course non trouvé"
+     
+# Tests pour le patch   
+class TestUpdateCourse:
+    def test_update_course_title(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        course_id = create_formation.json()["id"]
+        response = client.patch(f"/courses/{course_id}", json={
+            "title": "Apple Foundation Program"
+        })
+        assert response.status_code == 200
+        assert response.json()["title"] == "Apple Foundation Program"
+
+    def test_update_course_duration(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        course_id = create_formation.json()["id"]
+        response = client.patch(f"/courses/{course_id}", json={
+            "duration": 80
+        })
+        assert response.status_code == 200
+        assert response.json()["duration"] == 80
+
+    def test_update_course_not_found(self, client):
+        response = client.patch("/courses/999", json={"title": "Nouveau"})
+        assert response.status_code == 404
+
+    def test_update_course_invalid_duration(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        course_id = create_formation.json()["id"]
+        response = client.patch(f"/courses/{course_id}", json={
+            "duration": -5
+        })
+        assert response.status_code == 422
+
+    def test_update_course_partial(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        course_id = create_formation.json()["id"]
+        original_duration = create_formation.json()["duration"]
+        response = client.patch(f"/courses/{course_id}", json={
+            "title": "Nouveau titre"
+        })
+        assert response.status_code == 200
+        assert response.json()["duration"] == original_duration
+
+#Tests deleteclass TestDeleteCourse:
+class TestDeleteCourse:
+    def test_delete_course_success(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        course_id = create_formation.json()["id"]
+        response = client.delete(f"/courses/{course_id}")
+        assert response.status_code == 204
+
+    def test_delete_course_not_found(self, client):
+        response = client.delete("/courses/999")
+        assert response.status_code == 404
+
+# à voir avec la chose de deactivation
+    def test_delete_course_really_deleted(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        course_id = create_formation.json()["id"]
+        client.delete(f"/courses/{course_id}")
+        response = client.get(f"/courses/{course_id}")
+        assert response.status_code == 404
