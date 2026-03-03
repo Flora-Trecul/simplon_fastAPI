@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.learning_sessions import LSResponse, LSCreate, LSUpdate
-from app.schemas.users import UserRead
+from app.schemas.users import UserResponse
 from app.crud.learning_sessions import get_all_ls, get_one_ls, get_one_ls_by_course_dates, create_ls, soft_delete_ls, update_ls, get_ls_users
 
 
@@ -67,7 +67,7 @@ async def delete_learning_session(learning_session_id: int, db: Session = Depend
 	return {"message": "Session de formation supprimée."}
 
 
-@router.get("/{ls_id}/users", response_model = list[UserRead])
+@router.get("/{ls_id}/users", response_model = list[UserResponse])
 async def get_learning_session_users(learning_session_id: int, db: Session = Depends(get_db)):
 	db_ls_users = get_ls_users(db = db, ls_id = learning_session_id)
 
