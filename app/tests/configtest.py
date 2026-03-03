@@ -78,10 +78,10 @@ def sample_session_1(db_session, sample_course):
 @pytest.fixture
 def sample_session_2(db_session, sample_course):
     session = LearningSession(
-        title = "Dev IA 2024-2025", 
         course_id = sample_course.id,
         start_date = date(2024, 9, 15),
-        end_date = date(2025, 12, 31)
+        end_date = date(2025, 12, 31),
+        max_capacity = 15
     )
     db_session.add(session)
     db_session.commit()
