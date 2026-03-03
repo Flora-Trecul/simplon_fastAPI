@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.models import LearningSession, User
+from app.models.models import LearningSession, User, Course
 from app.schemas.learning_sessions import LSCreate, LSUpdate
 from datetime import date, datetime
 
@@ -46,9 +46,13 @@ def get_ls_users(db: Session, ls_id: int) -> None | list[User]:
 
 def create_ls(db: Session, schema: LSCreate) -> LearningSession:
 	ls_data = schema.model_dump()
-	ls_valid_data = {key: value for key, value in ls_data.items() if key in LearningSession.__table__.columns}
+	
+	ls_course = db.query(Course).filter(Course.id == ls_data["course_id"]).first()
 
-	db_ls = LearningSession(**ls_valid_data)
+	if not ls_course:
+		return None
+
+	db_ls = LearningSession(**ls_data)
 
 	db.add(db_ls)
 	db.commit()
@@ -71,7 +75,6 @@ def update_ls(db: Session, ls_id: int, schema: LSUpdate) -> None | LearningSessi
 	for field, value in updated_data.items():
 		setattr(db_ls, field, value)
 	
-	db.add(db_ls)
 	db.commit()
 	db.refresh(db_ls)
 	return db_ls
