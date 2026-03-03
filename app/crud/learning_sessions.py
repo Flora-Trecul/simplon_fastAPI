@@ -58,11 +58,15 @@ def create_ls(db: Session, schema: LSCreate) -> LearningSession:
 
 def update_ls(db: Session, ls_id: int, schema: LSUpdate) -> None | LearningSession:
 	db_ls = db.query(LearningSession).filter(LearningSession.id == ls_id).first()
-
-	if not db_ls:
-		return None
 	
 	updated_data = schema.model_dump(exclude_unset=True)
+
+	if "start_date" in updated_data or "end_date" in updated_data:
+		start_date = updated_data.get("start_date", db_ls.start_date)
+		end_date = updated_data.get("end_date", db_ls.end_date)
+
+		if start_date >= end_date:
+			return None
 
 	for field, value in updated_data.items():
 		setattr(db_ls, field, value)

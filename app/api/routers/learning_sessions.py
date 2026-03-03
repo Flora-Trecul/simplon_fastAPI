@@ -34,12 +34,17 @@ async def read_learning_session(learning_session_id: int, db: Session = Depends(
 
 @router.patch("/{ls_id}", response_model=LSResponse)
 async def udpate_learning_sessions(learning_session_id: int, schema: LSUpdate, db: Session = Depends(get_db)):
-	db_ls = update_ls(db = db, ls_id = learning_session_id, schema = schema)
+	db_ls = get_one_ls(db = db, ls_id = learning_session_id)
 
 	if not db_ls:
 		raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Ressource introuvable")
 
-	return db_ls
+	db_ls_updated = update_ls(db = db, ls_id = learning_session_id, schema = schema)
+	
+	if not db_ls_updated:
+		raise HTTPException(status_code = status.HTTP_422_UNPROCESSABLE_CONTENT, detail = "La date de fin doit être supérieure à la date de début.")
+
+	return db_ls_updated
 
 
 @router.post("/", response_model=LSResponse, status_code = status.HTTP_201_CREATED)

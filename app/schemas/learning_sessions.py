@@ -26,6 +26,13 @@ class LSUpdate(BaseModel):
 	max_capacity: Optional[int] = Field(None, ge=1, le=50)
 	courses_id: Optional[int] = Field(None, ge=0)
 
+	@model_validator(mode="after")
+	def validate_dates(self):
+		if self.start_date and self.end_date:
+			if self.start_date >= self.end_date:
+				raise ValueError("La date de fin doit être supérieure à la date de début.")
+		return self
+
 
 class LSResponse(LSBase):
 	id: int = Field(ge=0)
