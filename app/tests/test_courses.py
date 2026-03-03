@@ -184,7 +184,78 @@ class TestGetCourse:
         response = client.get(f"/courses/777")
         assert response.status_code == 404
         assert response.json()["detail"] == "Formation non trouvée"
-     
+        
+class TestCourseSession:
+    def test_get_sessions_course_not_found(self, client):
+        response = client.get("/courses/999/sessions")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Ressource introuvable"
+    
+    def test_get_sessions_course_without_sessions(self, client):
+        payload = {
+            "title": "Python",
+            "description": "Cours Python",
+            "duration": 40,
+            "level": "intermédiaire"
+        }
+
+        create_course = client.post("/courses", json=payload)
+        course_id = create_course.json()["id"]
+
+        response = client.get(f"/courses/{course_id}/sessions")
+
+        assert response.status_code == 404
+    def test_get_courses_with_one_session(self, client):
+        course_payload = {
+            "title": "Python",
+            "description": "Cours Python",
+            "duration": 40,
+            "level": "intermédiaire"
+        }
+
+        create_course = client.post("/courses", json=course_payload)
+        course_id = create_course.json()["id"]
+
+        session_payload = {
+            "course_id": course_id,
+            "start_date": "2025-06-01",
+            "end_date": "2025-06-30",
+            "max_capacity": 20
+        }
+        # client.post("/sessions", json=session_payload)
+        create_session = client.post("/learning-sessions", json=session_payload)
+        print(create_session.status_code)
+        print(create_session.json())
+        response = client.get(f"/courses/{course_id}/sessions")
+
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+    
+    def test_get_courses_with_multiple_sessions(self, client):
+        course_payload = {
+            "title": "Data",
+            "description": "Data Science",
+            "duration": 60,
+            "level": "avancé"
+        }
+
+        create_course = client.post("/courses", json=course_payload)
+        course_id = create_course.json()["id"]
+
+        for i in range(3):
+            session_payload = {
+                "course_id": course_id,
+                "start_date": f"2025-07-0{i+1}",
+                "end_date": f"2025-07-1{i+1}",
+                "max_capacity": 15
+            }
+            client.post("/learning-sessions", json=session_payload)
+
+        response = client.get(f"/courses/{course_id}/sessions")
+
+        assert response.status_code == 200
+        assert len(response.json()) == 3
+        
 # Tests pour le patch   
 class TestUpdateCourse:
     def test_update_course_title(self, client):
