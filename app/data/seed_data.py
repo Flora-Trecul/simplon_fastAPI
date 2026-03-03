@@ -75,3 +75,6 @@ def seed_data():
 
     db.close()
     print("Base de données remplie")
+    
+if __name__ == "__main__":
+    seed_data()
