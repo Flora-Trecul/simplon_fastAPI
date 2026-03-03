@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 # from app.models.models import User
 
@@ -19,7 +19,6 @@ class LSBase(BaseModel):
 
 class LSCreate(LSBase):
 	pass
-
 
 class LSUpdate(BaseModel):
 	id: Optional[int] = Field(None, ge=0)

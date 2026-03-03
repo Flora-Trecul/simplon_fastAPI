@@ -9,7 +9,7 @@ class EnumLevel(str, Enum):
 class Coursebase(BaseModel):
     title: str = Field(..., min_length=2)
     duration: int = Field(..., gt=0)
-    description: str | None = Field(None)
+    description: str | None = None
     level: EnumLevel
     
     @field_validator('title')

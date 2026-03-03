@@ -1,0 +1,183 @@
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from app.main import app
+from app.core.database import get_db
+from fastapi.testclient import TestClient
+from app.models.models import Base
+
+db_url_test = "sqlite:///./test.db"
+
+engine_test = create_engine(db_url_test, connect_args={"check_same_thread": False})
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
+
+# fixtures initialize test functions. They provide a fixed baseline so that tests execute reliably and produce consistent, repeatable results.
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """
+    Create the test database schema before any tests run,
+    and drop it after all tests are done.
+    """
+    Base.metadata.create_all(engine_test)
+    yield
+    Base.metadata.drop_all(engine_test)
+    
+@pytest.fixture(scope="function")
+def db():
+    """
+    Create a new database session for each test and roll it back after the test.
+    """
+    connection = engine_test.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
+
+    yield session
+
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+@pytest.fixture()
+def client(db):
+    """
+    Provide a TestClient that uses the test database session.
+    Override the get_db dependency to use the test session.
+    """
+    def override_get_db():
+            yield db
+    
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+#Tests pour le post
+class TestCreateCouse:
+    def test_create_course_success(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+
+        response = client.post("/courses", json=payload)
+
+        assert response.status_code == 201
+
+        data = response.json()
+        assert data["id"] is not None
+        assert data["title"] == "Dévelopment IA"
+        assert data["duration"] == 500
+        assert data["level"] == "intermédiaire"
+
+    def test_create_title_too_short(self, client):
+        payload = {
+            "title": "D",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        response = client.post("/courses", json=payload)
+
+        assert response.status_code == 422
+
+    def test_create_negative_duration(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": -5,
+            "level": "intermédiaire"
+        }
+        response = client.post("/courses", json=payload)
+
+        assert response.status_code == 422
+
+    def test_create_duration_zero(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 0,
+            "level": "intermédiaire"
+        }
+        response = client.post("/courses", json=payload)
+
+        assert response.status_code == 422
+
+    def test_nonexisting_level(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "advanced"
+        }
+        response = client.post("/courses", json=payload)
+
+        assert response.status_code == 422
+
+    def test_create_course_missing_tittle(self, client):
+        payload = {
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        response = client.post("/courses", json=payload)
+
+        assert response.status_code == 422
+
+    def test_create_course_empty_tittle(self, client):
+        payload = {
+            "title": "        ",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        response = client.post("/courses", json=payload)
+
+        assert response.status_code == 422
+
+    def test_create_without_description(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        response = client.post("/courses", json=payload)
+        assert response.status_code == 201
+        assert response.json()["description"] == None
+
+# Tests pour le get
+class TestGetCourse:
+    def test_get_all_courses_empty(self, client):
+        response = client.get("/courses")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_get_all_courses(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        response = client.get("/courses")
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+    
+    def test_get_course_by_id(self, client):
+        payload = {
+            "title": "Dévelopment IA",
+            "description": "Dévelopoment IA et Data",
+            "duration": 500,
+            "level": "intermédiaire"
+        }
+        create_formation = client.post("/courses", json=payload)
+        course_id = create_formation.json()["id"]
+        response = client.get(f"/courses/{course_id}")
+        assert response.status_code == 200
+        assert response.json()["id"] == course_id
+    
+    def test_get_course_not_found(self, client):
+        

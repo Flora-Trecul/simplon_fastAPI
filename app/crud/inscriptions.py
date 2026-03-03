@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.schemas.inscriptions import InscriptionCreate
-from app.models.models import Inscription, LearningSession,  User
+from app.models.models import Inscription, LearningSession, User
 
 def create_inscription(db:Session, inscription: InscriptionCreate):
     
@@ -26,7 +26,7 @@ def create_inscription(db:Session, inscription: InscriptionCreate):
 
 def get_all_sessions(db: Session, user_id: int):
     inscriptions = db.query(Inscription).filter(Inscription.user_id == user_id).all()
-    sessions = [inscription.learning_sessions for inscription in inscriptions]
+    sessions = [inscription.learning_session for inscription in inscriptions]
     return sessions
 
 def get_all_users(db: Session, session_id: int):

@@ -1,8 +1,8 @@
-"""rename registrations to inscriptions
+"""initial
 
-Revision ID: 6186bf412637
-Revises: f53f7fca1259
-Create Date: 2026-02-26 12:03:51.172013
+Revision ID: 4ab0fd48d52f
+Revises: 
+Create Date: 2026-02-27 23:13:04.308641
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '6186bf412637'
-down_revision: Union[str, Sequence[str], None] = 'f53f7fca1259'
+revision: str = '4ab0fd48d52f'
+down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
