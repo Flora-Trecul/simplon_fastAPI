@@ -16,7 +16,7 @@ class Coursebase(BaseModel):
     @classmethod
     def title_not_empty(cls,title):
         if not title.strip():
-            raise ValueError("Le titre n'est peut pas être vide.")
+            raise ValueError("Le titre ne peut pas être vide.")
         return title.strip()
 
 class CourseCreate(Coursebase):
