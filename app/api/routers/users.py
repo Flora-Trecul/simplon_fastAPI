@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import List
 from sqlalchemy.orm import Session
 from app.schemas.learning_sessions import LSResponse
 from app.schemas.users import UserResponse, UserCreate, UserUpdate
 from app.core.database import get_db
-from app.models.models import User, LearningSession, Inscription
 from app.crud import users as crud
 
 
@@ -14,12 +14,13 @@ router = APIRouter(
     tags=["users"]
 )
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/", response_model=Page[UserResponse])
 def read_users(
     name: str | None = None,
     role: str | None = None,
     db: Session = Depends(get_db)):
-    return crud.get_all_users(db, name=name, role=role)
+    db_users = paginate(db, crud.get_all_users(db, name=name, role=role))
+    return db_users
 
 @router.get("/{user_id}", response_model=UserResponse)
 def read_user_by_id(user_id: int, db: Session = Depends(get_db)):
