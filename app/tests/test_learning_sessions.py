@@ -610,3 +610,169 @@ class TestCrudLS:
         assert updated_ls is not None
         assert updated_ls.deleted_at is not None
         assert isinstance(updated_ls.deleted_at, datetime)
+
+
+class TestRouterLS:
+
+    # --- Tests GET ---
+
+    def test_router_get_all_ls_returns_list_ls(self, client, sample_session_1):
+
+        response = client.get("/learning-sessions/")
+        data = response.json()
+
+        assert response.status_code == 200
+        assert "items" in data
+        assert len(data["items"]) == 1
+        assert "id" in data["items"][0]
+        assert "course_id" in data["items"][0]
+
+
+    def test_router_get_all_returns_404_if_no_ls(self, client):
+        response = client.get("/learning-sessions/")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Aucune session de formation trouvée."
+
+
+    def test_router_get_all_ls_pagination_is_valid(self, client, sample_session_1):
+        response = client.get("/learning-sessions/?page=1&size=1")
+        data = response.json()
+
+        assert response.status_code == 200
+        assert data["size"] == 1
+        assert len(data["items"]) == 1
+
+
+    def test_router_get_one_ls_returns_valid_ls(self, client, sample_session_1):
+        response = client.get(f"/learning-sessions/{sample_session_1.id}")
+        data = response.json()
+
+        if response.status_code == 422:
+            print(response.json())
+
+        assert response.status_code == 200
+        assert data["id"] == sample_session_1.id
+        assert data["course_id"] == sample_session_1.course_id
+
+
+    def test_router_get_one_ls_returns_404_if_ls_not_found(self, client):
+        response = client.get("/learning-sessions/9999")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Cette session de formation est introuvable."
+
+
+    def test_router_get_ls_users_returns_valid_users_list(self, client, sample_session_1, sample_inscription):
+        response = client.get(f"/learning-sessions/{sample_session_1.id}/users")
+        data = response.json()
+
+        assert response.status_code == 200
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert "last_name" in data[0]
+        assert "email" in data[0]
+
+
+    def test_router_get_ls_users_returns_404_if_ls_not_found(self, client):
+        response = client.get("/learning-sessions/9999/users")
+        
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Cette session de formation est introuvable."
+
+
+    def test_router_get_ls_users_returns_empty_list_if_no_registered_users(self, client, sample_session_1):
+        response = client.get(f"/learning-sessions/{sample_session_1.id}/users")
+        
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Aucun utilisateur inscrit à cette session de formation."
+
+
+    # --- Tests PATCH ---
+
+    def test_router_patch_ls_returns_valid_ls(self, client, sample_session_1):
+        update_data = {"max_capacity": 20}
+        response = client.patch(f"/learning-sessions/{sample_session_1.id}", json=update_data)
+        
+        assert response.status_code == 201
+        assert response.json()["max_capacity"] == 20
+
+
+    def test_router_patch_ls_returns_404_if_ls_not_found(self, client):
+        response = client.patch("/learning-sessions/9999", json={"max_capacity": 20})
+        
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Cette session de formation est introuvable."
+
+
+    def test_router_patch_ls_returns_404_if_course_not_found(self, client, sample_session_1):
+        response = client.patch(f"/learning-sessions/{sample_session_1.id}", json={"course_id": 999})
+        
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Cette formation est introuvable."
+
+
+    def test_router_patch_ls_returns_422_if_invalid_dates(self, client, sample_session_1):
+        invalid_start_date = {"start_date": "2027-08-25"}
+        response = client.patch(f"/learning-sessions/{sample_session_1.id}", json=invalid_start_date)
+        
+        assert response.status_code == 422
+        assert response.json()["detail"] == "La date de fin doit être supérieure à la date de début."
+
+
+    # --- TESTS POST (Create) ---
+
+    def test_router_post_ls_returns_valid_ls(self, client, sample_course):
+        """Vérifie la création d'une session (201)"""
+        new_ls = {
+            "course_id": sample_course.id,
+            "start_date": "2026-03-04",
+            "end_date": "2028-02-02",
+            "max_capacity": 25
+        }
+        response = client.post("/learning-sessions/", json=new_ls)
+        
+        assert response.status_code == 201
+        assert response.json()["max_capacity"] == 25
+
+
+    def test_router_post_ls_returns_400_if_ls_already_exists(self, client, sample_session_1):
+        duplicate_data = {
+            "course_id": sample_session_1.course_id,
+            "start_date": sample_session_1.start_date.isoformat(),
+            "end_date": sample_session_1.end_date.isoformat(),
+            "max_capacity": sample_session_1.max_capacity
+        }
+        response = client.post("/learning-sessions/", json=duplicate_data)
+        
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Cette session de formation existe déjà."
+
+
+    def test_router_post_ls_returns_404_if_course_not_found(self, client):
+        new_ls = {
+            "course_id": 9999,
+            "start_date": "2026-03-04",
+            "end_date": "2028-02-02",
+            "max_capacity": 25
+        }
+        response = client.post("/learning-sessions/", json=new_ls)
+        
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Cette formation n'existe pas."
+
+
+    # --- Tests DELETE ---
+
+    def test_router_delete_ls_returns_204_if_success(self, client, sample_session_1):
+        response = client.delete(f"/learning-sessions/{sample_session_1.id}")
+        
+        assert response.status_code == 204
+        if response.content:
+            assert response.json()["message"] == "Session de formation supprimée."
+
+
+    def test_router_delete_ls_returns_404_if_ls_not_found(self, client):
+        response = client.delete("/learning-sessions/9999")
+        
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Cette session de formation est introuvable."
