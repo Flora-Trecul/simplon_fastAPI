@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
 from fastapi.testclient import TestClient
 from datetime import date
 
@@ -78,6 +77,15 @@ def administrateur_data():
         "role": "administrateur",
         "inscription_date": str(date.today()),
     }
+
+@pytest.fixture
+def course_data():
+    return{
+        "title": "Dévelopment IA",
+        "description": "Dévelopoment IA et Data",
+        "duration": 500,
+        "level": "intermédiaire"        
+            }
 
 
 @pytest.fixture()

@@ -10,7 +10,22 @@ from datetime import datetime
 def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
-def get_all_users(db: Session):
+def get_all_users(db: Session, name: str | None = None, role: str | None = None):
+    query = db.query(User)
+
+    if name:
+        query = query.filter(
+            or_(
+                User.first_name.ilike(f"%{name}%"),
+                User.last_name.ilike(f"%{name}%")
+            )
+        )
+    if role:
+        query = query.filter(User.role.ilike(f"%{role}%"))
+
+    return query.all()
+  
+def get_all_users_pagination(db: Session):
     return paginate(db, select(User))
 
 def create_user(db: Session, user: UserCreate):
@@ -45,7 +60,7 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate):
     if update_data:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="utilisateur introuvable")
+            return None
 
         db.query(User).filter(User.id == user_id).update(update_data)
         db.commit()
@@ -53,14 +68,8 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate):
 
     return user
 
-def get_user_with_name(db: Session, user_name: str):
-    stmt = select(User).where(
-        or_(
-            User.first_name.like(f"%{user_name}%"),
-            User.last_name.like(f"%{user_name}%")
-        )
-    ).limit(5)
-    return db.execute(stmt).scalars().all()
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
 
 def get_user_role(db: Session, role: str):
     return paginate(db, select(User).where(User.role.like(f"%{role}%")))
@@ -68,7 +77,7 @@ def get_user_role(db: Session, role: str):
 def get_all_sessions(db: Session, user_id: int):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="utilisateur introuvable")
+        return None
     return user.learning_sessions
 
 def create_inscription(db: Session, user_id: int, session_id: int):
@@ -78,8 +87,14 @@ def create_inscription(db: Session, user_id: int, session_id: int):
     db.refresh(inscription)
     return inscription
 
-def count_inscriptions(db: Session, session_id: int) -> int:
-    return db.query(Inscription).filter(Inscription.session_id == session_id).count()
+
+
+def count_apprenant(db: Session, session_id: int) -> int:
+    return (db.query(Inscription).join(User)
+            .filter(
+            Inscription.session_id == session_id,
+            User.role == "apprenant"
+         ).count())
 
 def get_learning_session(db: Session, session_id: int):
     return db.query(LearningSession).filter(LearningSession.id == session_id).first()
@@ -87,10 +102,11 @@ def get_learning_session(db: Session, session_id: int):
 def get_inscription(db: Session, user_id: int, session_id: int):
     return db.get(Inscription, {"user_id": user_id, "session_id": session_id})
 
-def delete_session(db: Session, user_id: int, session_id: int):
-    inscription = db.get(Inscription, {"user_id": user_id, "session_id": session_id})
-    if inscription:
-        db.delete(inscription)
-        db.commit()
-    return inscription
 
+def delete_inscription(db: Session, user_id: int, session_id: int):
+    inscription = ( db.query(Inscription).filter(Inscription.user_id == user_id,Inscription.session_id == session_id,).first() )
+    if not inscription:
+        return None
+    db.delete(inscription)
+    db.commit()
+    return inscription
