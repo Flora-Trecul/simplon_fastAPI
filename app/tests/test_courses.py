@@ -1,68 +1,10 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from app.main import app
-from app.core.database import get_db
-from fastapi.testclient import TestClient
-from app.models.models import Base
 
-db_url_test = "sqlite:///./test.db"
-
-engine_test = create_engine(db_url_test, connect_args={"check_same_thread": False})
-
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
-
-# fixtures initialize test functions. They provide a fixed baseline so that tests execute reliably and produce consistent, repeatable results.
-@pytest.fixture(scope="session", autouse=True)
-def setup_test_database():
-    """
-    Create the test database schema before any tests run,
-    and drop it after all tests are done.
-    """
-    Base.metadata.create_all(engine_test)
-    yield
-    Base.metadata.drop_all(engine_test)
-    
-@pytest.fixture(scope="function")
-def db():
-    """
-    Create a new database session for each test and roll it back after the test.
-    """
-    connection = engine_test.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
-
-    yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
-
-@pytest.fixture()
-def client(db):
-    """
-    Provide a TestClient that uses the test database session.
-    Override the get_db dependency to use the test session.
-    """
-    def override_get_db():
-            yield db
-    
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
-
-#Tests pour le post
+#Tests pour le post 
 class TestCreateCouse:
-    def test_create_course_success(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-
-        response = client.post("/courses", json=payload)
+    def test_create_course_success(self, client, course_data):
+ 
+        response = client.post("/courses", json=course_data)
 
         assert response.status_code == 201
 
@@ -154,26 +96,14 @@ class TestGetCourse:
         assert response.status_code == 200
         assert response.json()["items"] == []
 
-    def test_get_all_courses(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_get_all_courses(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         response = client.get("/courses")
         assert response.status_code == 200
         assert len(response.json()["items"]) == 1
     
-    def test_get_course_by_id(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_get_course_by_id(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         course_id = create_formation.json()["id"]
         response = client.get(f"/courses/{course_id}")
         assert response.status_code == 200
@@ -191,29 +121,15 @@ class TestCourseSession:
         assert response.status_code == 404
         assert response.json()["detail"] == "Ressource introuvable"
     
-    def test_get_course_without_sessions(self, client):
-        payload = {
-            "title": "Python",
-            "description": "Cours Python",
-            "duration": 40,
-            "level": "intermédiaire"
-        }
-
-        create_course = client.post("/courses", json=payload)
+    def test_get_course_without_sessions(self, client, course_data):
+        create_course = client.post("/courses", json=course_data)
         course_id = create_course.json()["id"]
 
         response = client.get(f"/courses/{course_id}/sessions")
 
         assert response.status_code == 404
-    def test_get_courses_with_one_session(self, client):
-        course_payload = {
-            "title": "Python",
-            "description": "Cours Python",
-            "duration": 40,
-            "level": "intermédiaire"
-        }
-
-        create_course = client.post("/courses", json=course_payload)
+    def test_get_courses_with_one_session(self, client, course_data):
+        create_course = client.post("/courses", json=course_data)
         course_id = create_course.json()["id"]
 
         session_payload = {
@@ -231,15 +147,8 @@ class TestCourseSession:
         assert response.status_code == 200
         assert len(response.json()) == 1
     
-    def test_get_courses_with_multiple_sessions(self, client):
-        course_payload = {
-            "title": "Data",
-            "description": "Data Science",
-            "duration": 60,
-            "level": "avancé"
-        }
-
-        create_course = client.post("/courses", json=course_payload)
+    def test_get_courses_with_multiple_sessions(self, client, course_data):
+        create_course = client.post("/courses", json=course_data)
         course_id = create_course.json()["id"]
 
         for i in range(3):
@@ -258,14 +167,8 @@ class TestCourseSession:
         
 # Tests pour le patch   
 class TestUpdateCourse:
-    def test_update_course_title(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_update_course_title(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         course_id = create_formation.json()["id"]
         response = client.patch(f"/courses/{course_id}", json={
             "title": "Apple Foundation Program"
@@ -273,14 +176,8 @@ class TestUpdateCourse:
         assert response.status_code == 200
         assert response.json()["title"] == "Apple Foundation Program"
 
-    def test_update_course_duration(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_update_course_duration(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         course_id = create_formation.json()["id"]
         response = client.patch(f"/courses/{course_id}", json={
             "duration": 80
@@ -292,28 +189,16 @@ class TestUpdateCourse:
         response = client.patch("/courses/999", json={"title": "Nouveau"})
         assert response.status_code == 404
 
-    def test_update_course_invalid_duration(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_update_course_invalid_duration(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         course_id = create_formation.json()["id"]
         response = client.patch(f"/courses/{course_id}", json={
             "duration": -5
         })
         assert response.status_code == 422
 
-    def test_update_course_partial(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_update_course_partial(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         course_id = create_formation.json()["id"]
         original_duration = create_formation.json()["duration"]
         response = client.patch(f"/courses/{course_id}", json={
@@ -324,14 +209,8 @@ class TestUpdateCourse:
 
 #Tests deleteclass TestDeleteCourse:
 class TestDeleteCourse:
-    def test_delete_course_success(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_delete_course_success(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         course_id = create_formation.json()["id"]
         response = client.delete(f"/courses/{course_id}")
         assert response.status_code == 204
@@ -341,14 +220,8 @@ class TestDeleteCourse:
         assert response.status_code == 404
 
 # à voir avec la chose de deactivation
-    def test_delete_course_really_deleted(self, client):
-        payload = {
-            "title": "Dévelopment IA",
-            "description": "Dévelopoment IA et Data",
-            "duration": 500,
-            "level": "intermédiaire"
-        }
-        create_formation = client.post("/courses", json=payload)
+    def test_delete_course_really_deleted(self, client, course_data):
+        create_formation = client.post("/courses", json=course_data)
         course_id = create_formation.json()["id"]
         client.delete(f"/courses/{course_id}")
         response = client.get(f"/courses/{course_id}")

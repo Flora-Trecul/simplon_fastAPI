@@ -78,6 +78,15 @@ def administrateur_data():
         "inscription_date": str(date.today()),
     }
 
+@pytest.fixture
+def course_data():
+    return{
+        "title": "Dévelopment IA",
+        "description": "Dévelopoment IA et Data",
+        "duration": 500,
+        "level": "intermédiaire"        
+            }
+
 
 @pytest.fixture()
 def created_apprenant(client, apprenant_data):
