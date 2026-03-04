@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, model_validator
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing import Optional
 from datetime import date
 
 
@@ -19,6 +19,7 @@ class LSBase(BaseModel):
 class LSCreate(LSBase):
 	pass
 
+
 class LSUpdate(BaseModel):
 	start_date: Optional[date] = None
 	end_date: Optional[date] = None
@@ -36,5 +37,4 @@ class LSUpdate(BaseModel):
 class LSResponse(LSBase):
 	id: int = Field(ge=0)
 
-	class Config:
-		from_attributes = True
+	model_config = ConfigDict(from_attributes=True)

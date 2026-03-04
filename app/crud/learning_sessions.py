@@ -1,9 +1,7 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 from app.models.models import LearningSession, User, Course
 from app.schemas.learning_sessions import LSCreate, LSUpdate
 from datetime import date, datetime
-from fastapi_pagination.ext.sqlalchemy import paginate
 
 
 def get_one_ls(db: Session, ls_id: int) -> None | LearningSession:
@@ -16,7 +14,7 @@ def get_one_ls(db: Session, ls_id: int) -> None | LearningSession:
 
 
 def get_all_ls(db: Session) -> None | list[LearningSession]:
-	db_ls = paginate(db, select(LearningSession))
+	db_ls = db.query(LearningSession)
 
 	if not db_ls:
 		return None
@@ -110,7 +108,7 @@ def soft_delete_ls(db: Session, ls_id:int) -> bool:
 
 
 def get_all_ls_including_deleted(db: Session) -> None | list[LearningSession]:
-	db_ls = db.query(LearningSession).execution_options(include_deleted = True).all()
+	db_ls = db.query(LearningSession).execution_options(include_deleted = True)
 
 	if not db_ls:
 		return None
