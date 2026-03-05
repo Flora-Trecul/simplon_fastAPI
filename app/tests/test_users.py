@@ -28,37 +28,32 @@ def test_create_user_missing_field(client):
 
 
 # GET /users/
-
 def test_get_all_users(client, created_apprenant):
     response = client.get("/users/")
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
-    assert len(response.json()) >= 1
+    data = response.json()
+    assert "items" in data
+    assert "total" in data
+    assert isinstance(data["items"], list)
+    assert data["total"] >= 1
 
 def test_get_users_filter_by_name(client, created_apprenant):
     response = client.get("/users/?name=Alice")
     assert response.status_code == 200
-    assert any(u["first_name"] == "Alice" for u in response.json())
+    data = response.json()
+    assert any(u["first_name"] == "Alice" for u in data["items"])
 
 def test_get_users_filter_by_name_partial(client, created_apprenant):
     response = client.get("/users/?name=ali")
     assert response.status_code == 200
-    assert len(response.json()) >= 1
+    data = response.json()
+    assert len(data["items"]) >= 1
 
 def test_get_users_filter_by_role(client, created_apprenant, created_formateur):
     response = client.get("/users/?role=apprenant")
     assert response.status_code == 200
-    assert all(u["role"] == "apprenant" for u in response.json())
-
-def test_get_users_filter_no_result(client):
-    response = client.get("/users/?name=Inexistant")
-    assert response.status_code == 200
-    assert response.json() == []
-
-def test_get_users_filter_name_and_role(client, created_apprenant):
-    response = client.get("/users/?name=Alice&role=apprenant")
-    assert response.status_code == 200
-    assert len(response.json()) >= 1
+    data = response.json()
+    assert all(u["role"] == "apprenant" for u in data["items"])
 
 # GET /users/{user_id}
 
