@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.courses import CourseCreate, CourseRead, CourseUpdate
@@ -14,7 +15,8 @@ def create(data: CourseCreate, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=Page[CourseRead])
 def list_all(db: Session = Depends(get_db)):
-    return crud.get_all_courses(db)
+    db_course = paginate(db, crud.get_all_courses(db = db))
+    return db_course
 
 @router.get("/{course_id}", response_model=CourseRead)
 def get_one(course_id: int, db: Session = Depends(get_db)):
