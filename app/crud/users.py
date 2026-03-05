@@ -53,7 +53,7 @@ def soft_delete_user(db: Session, user_id: int):
     return True
 
 def update_user(db: Session, user_id: int, user_data: UserUpdate):
-    update_data = user_data.dict(exclude_unset=True)
+    update_data = user_data.model_dump(exclude_unset=True)
 
     if update_data:
         user = db.query(User).filter(User.id == user_id).first()

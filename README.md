@@ -33,6 +33,7 @@ app/
 ├── schemas/         # Validation des données (Pydantic)
 └── tests/           # Tests unitaires et d'intégration
 main.py              # Lancement du projet
+documents/           # Slides de présentation du projet
 ```
 
 
